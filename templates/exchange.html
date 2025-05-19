@@ -1,24 +1,80 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Beranda Interaktif</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  </head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exchange — CryptoCurency</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link 
+    rel="stylesheet" 
+    href="https://cdn.datatables.net/1.12.1/css/dataTables.tailwind.css"
+  />
+</head>
 <body class="bg-gradient-to-r from-blue-100 via-white to-purple-100 text-gray-800">
 
   <!-- Navbar -->
   <header class="bg-white shadow-md sticky top-0 z-50">
-    <div class="container mx-auto px-4 py-4 flex justify-between items-center transition-all duration-300">
-      <h1 class="text-2xl font-bold text-blue-700 hover:scale-105 transition-transform duration-300">✨ CryptoCurency</h1>
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-blue-700">✨ CryptoCurency</h1>
       <nav class="space-x-6 text-gray-700 font-medium">
-        <a href="/exchange" class="hover:text-blue-500 transition duration-300">Exchange</a>
-        <a href="/prediksi" class="hover:text-blue-500 transition duration-300">Prediksi</a>
-        <a href="/tentang" class="hover:text-blue-500 transition duration-300">About</a>
+        <a href="/exchange" class="text-blue-500">Exchange</a>
+        <a href="/prediksi" class="hover:text-blue-500">Prediksi</a>
+        <a href="/tentang" class="hover:text-blue-500">About</a>
       </nav>
     </div>
   </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-6">
+    <h2 class="text-xl font-semibold mb-4">
+      Semua Koin USDT Listing di Binance
+    </h2>
+    <div class="overflow-x-auto bg-white rounded-lg shadow">
+      <table id="coins-table" class="min-w-full divide-y divide-gray-200"></table>
+    </div>
+  </main>
+
+  <!-- JS Dependencies -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script 
+    src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js">
+  </script>
+  <script 
+    src="https://cdn.datatables.net/1.12.1/js/dataTables.tailwind.js">
+  </script>
+
+  <!-- Initialize DataTable -->
+  <script>
+    $(function() {
+      const table = $('#coins-table').DataTable({
+        ajax: { url: '/api/binance', dataSrc: '' },
+        columns: [
+          { title: 'Rank',        data: 'rank' },
+          { title: 'Symbol',      data: 'symbol' },
+          { title: 'Price (USD)', data: 'price',
+            render: d => d.toFixed(6) },
+          { title: '24h Change',  data: 'change_pct',
+            render: d => {
+              const cls = d >= 0 ? 'text-green-600' : 'text-red-600';
+              return `<span class="${cls}">${
+                d >= 0 ? '+' : ''}${d.toFixed(2)}%</span>`;
+            }
+          },
+          { title: 'Volume (USDT)', data: 'volume',
+            render: d => Number(d).toLocaleString() },
+          { title: 'Market Cap', data: 'market_cap',
+            render: d => d != null
+              ? `$${Number(d).toLocaleString()}`
+              : '-' }
+        ],
+        order: [[0, 'asc']],
+        pageLength: 100,
+        responsive: true
+      });
+
+      // Refresh tiap 5 menit
+      setInterval(() => table.ajax.reload(null, false), 300000);
+    });
+  </script>
 </body>
 </html>
