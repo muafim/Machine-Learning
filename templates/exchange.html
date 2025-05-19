@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Exchange — CryptoCurency</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link 
-    rel="stylesheet" 
-    href="https://cdn.datatables.net/1.12.1/css/dataTables.tailwind.css"
-  />
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/dataTables.tailwind.css"/>
 </head>
 <body class="bg-gradient-to-r from-blue-100 via-white to-purple-100 text-gray-800">
 
@@ -26,9 +23,7 @@
 
   <!-- Main Content -->
   <main class="container mx-auto px-4 py-6">
-    <h2 class="text-xl font-semibold mb-4">
-      Semua Koin USDT Listing di Binance
-    </h2>
+    <h2 class="text-xl font-semibold mb-4">Semua Koin USDT Listing di Binance</h2>
     <div class="overflow-x-auto bg-white rounded-lg shadow">
       <table id="coins-table" class="min-w-full divide-y divide-gray-200"></table>
     </div>
@@ -36,12 +31,8 @@
 
   <!-- JS Dependencies -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script 
-    src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js">
-  </script>
-  <script 
-    src="https://cdn.datatables.net/1.12.1/js/dataTables.tailwind.js">
-  </script>
+  <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.12.1/js/dataTables.tailwind.js"></script>
 
   <!-- Initialize DataTable -->
   <script>
@@ -49,30 +40,29 @@
       const table = $('#coins-table').DataTable({
         ajax: { url: '/api/binance', dataSrc: '' },
         columns: [
-          { title: 'Rank',        data: 'rank' },
-          { title: 'Symbol',      data: 'symbol' },
-          { title: 'Price (USD)', data: 'price',
-            render: d => d.toFixed(6) },
-          { title: '24h Change',  data: 'change_pct',
-            render: d => {
+          { title: 'Rank', data: 'rank' },
+          { title: 'Symbol', data: 'symbol' },
+          { title: 'Price (USD)', data: 'price', render: d => d.toFixed(6) },
+          { title: '24h Change', data: 'change_pct', render: d => {
               const cls = d >= 0 ? 'text-green-600' : 'text-red-600';
-              return `<span class="${cls}">${
-                d >= 0 ? '+' : ''}${d.toFixed(2)}%</span>`;
+              return `<span class="${cls}">${d >= 0 ? '+' : ''}${d.toFixed(2)}%</span>`;
             }
           },
-          { title: 'Volume (USDT)', data: 'volume',
-            render: d => Number(d).toLocaleString() },
-          { title: 'Market Cap', data: 'market_cap',
-            render: d => d != null
-              ? `$${Number(d).toLocaleString()}`
-              : '-' }
+          { title: 'Volume (USDT)', data: 'volume', render: d => Number(d).toLocaleString() },
+          { title: 'Market Cap', data: 'market_cap', render: d => d != null ? `$${Number(d).toLocaleString()}` : '-' }
         ],
         order: [[0, 'asc']],
         pageLength: 100,
         responsive: true
       });
 
-      // Refresh tiap 5 menit
+      $('#coins-table tbody').on('click', 'tr', function() {
+        const data = table.row(this).data();
+        if (data && data.symbol) {
+          window.location.href = `/coin/${data.symbol}`;
+        }
+      });
+
       setInterval(() => table.ajax.reload(null, false), 300000);
     });
   </script>

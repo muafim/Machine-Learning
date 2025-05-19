@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 import requests
 import time
 import logging
@@ -13,9 +13,54 @@ def index():
 def exchange():
     return render_template('exchange.html')
 
+@app.route('/prediksi')
+def prediksi():
+    return render_template('prediksi.html')
+
+@app.route('/tentang')
+def tentang():
+    return render_template('tentang.html')
+
+@app.route('/coin/<symbol>')
+def coin(symbol):
+    # Halaman chart untuk koin tertentu
+    return render_template('coin.html', symbol=symbol.upper())
+
+@app.route('/api/binance')
+def api_binance():
+    return jsonify(fetch_binance_data())
+
+@app.route('/api/klines')
+def api_klines():
+    # Parameter: symbol (tanpa USDT), interval (1m,15m,30m,1h,1d,1w,1M)
+    symbol = request.args.get('symbol', '').upper()
+    interval = request.args.get('interval', '15m')
+    if not symbol:
+        return jsonify({'error': 'Missing symbol'}), 400
+
+    binance_symbol = f"{symbol}USDT"
+    params = {'symbol': binance_symbol, 'interval': interval, 'limit': 500}
+    try:
+        resp = requests.get('https://api.binance.com/api/v3/klines', params=params, timeout=10)
+        resp.raise_for_status()
+        raw = resp.json()
+    except Exception as e:
+        logging.error(f"Error fetching klines: {e}")
+        return jsonify({'error': str(e)}), 500
+
+    ohlc = []
+    for item in raw:
+        ohlc.append({
+            'x': item[0],  # timestamp (ms UTC)
+            'open': float(item[1]),
+            'high': float(item[2]),
+            'low': float(item[3]),
+            'close': float(item[4])
+        })
+    return jsonify(ohlc)
+
 
 def fetch_binance_data():
-    # 1. Ambil data 24hr ticker Binance
     try:
         resp = requests.get('https://api.binance.com/api/v3/ticker/24hr', timeout=10)
         resp.raise_for_status()
@@ -40,10 +85,8 @@ def fetch_binance_data():
         except:
             continue
 
-    # sort by volume desc
     coins.sort(key=lambda x: x['volume'], reverse=True)
 
-    # 2. Ambil market cap dari CoinGecko: top 500 lewat 2 halaman
     gecko_caps = {}
     for page in [1, 2]:
         try:
@@ -57,27 +100,17 @@ def fetch_binance_data():
             r = requests.get('https://api.coingecko.com/api/v3/coins/markets', params=params, timeout=10)
             r.raise_for_status()
             for c in r.json():
-                # symbol di CoinGecko adalah ticker lowercase, e.g. "btc"
                 gecko_caps[c['symbol'].upper()] = c.get('market_cap', None)
-            time.sleep(1)  # hindari rate limit
+            time.sleep(1)
         except Exception as e:
             logging.warning(f"CoinGecko page {page} failed: {e}")
 
-    # 3. Gabungkan market cap
     for c in coins:
         c['market_cap'] = gecko_caps.get(c['symbol'], None)
-
-    # 4. Set rank ulang
     for i, c in enumerate(coins, start=1):
         c['rank'] = i
 
     return coins
-
-
-@app.route('/api/binance')
-def api_binance():
-    return jsonify(fetch_binance_data())
-
 
 if __name__ == '__main__':
     app.run(debug=True)

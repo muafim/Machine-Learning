@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chart {{ symbol }} — CryptoCurency</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-100 via-white to-purple-100 text-gray-800">
+
+  <!-- Navbar -->
+  <header class="bg-white shadow-md sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-blue-700">✨ CryptoCurency</h1>
+      <nav class="space-x-6 text-gray-700 font-medium">
+        <a href="/exchange" class="hover:text-blue-500">Exchange</a>
+        <a href="/prediksi" class="hover:text-blue-500">Prediksi</a>
+        <a href="/tentang" class="hover:text-blue-500">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-6">
+    <h2 class="text-xl font-semibold mb-4">Chart: {{ symbol }}</h2>
+    <div class="flex space-x-4 mb-4">
+      <select id="interval-select" class="p-2 border rounded">
+        <option value="1m">1 Menit</option>
+        <option value="15m" selected>15 Menit</option>
+        <option value="30m">30 Menit</option>
+        <option value="1h">1 Jam</option>
+        <option value="1d">1 Hari</option>
+        <option value="1w">1 Minggu</option>
+        <option value="1M">1 Bulan</option>
+      </select>
+      <select id="type-select" class="p-2 border rounded">
+        <option value="candlestick" selected>Candle</option>
+        <option value="line">Line</option>
+      </select>
+    </div>
+    <div id="chart"></div>
+  </main>
+
+  <script>
+    const symbol = "{{ symbol }}";
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'candlestick', height: 500, toolbar: { show: true } },
+      series: [],
+      xaxis: {
+        type: 'datetime',
+        labels: {
+          formatter: function(value, timestamp) {
+            const date = new Date(timestamp + 7 * 3600 * 1000);
+            return date.toISOString().replace('T', ' ').substr(0, 19);
+          }
+        }
+      },
+      yaxis: { tooltip: { enabled: true } }
+    });
+    chart.render();
+
+    async function updateChart() {
+      const interval = document.getElementById('interval-select').value;
+      const type = document.getElementById('type-select').value;
+      try {
+        const res = await fetch(`/api/klines?symbol=${symbol}&interval=${interval}`);
+        const data = await res.json();
+        if (type === 'candlestick') {
+          chart.updateOptions({ chart: { type: 'candlestick' } });
+          chart.updateSeries([{
+            data: data.map(d => ({ x: d.x, y: [d.open, d.high, d.low, d.close] }))
+          }]);
+        } else {
+          chart.updateOptions({ chart: { type: 'line' } });
+          chart.updateSeries([{ name: 'Close', data: data.map(d => [d.x, d.close]) }]);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    document.getElementById('interval-select').addEventListener('change', updateChart);
+    document.getElementById('type-select').addEventListener('change', updateChart);
+
+    // Initial load & auto-refresh tiap 1 menit
+    updateChart();
+    setInterval(updateChart, 60000);
+  </script>
+</body>
+</html>
